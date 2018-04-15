@@ -20,7 +20,7 @@ print(files)
 random.shuffle(files)
 test = files[:len(files) // 5]
 train = files[len(files) // 5:]
-# test
+# test1
 
 feature_counts = defaultdict(float)
 prior = defaultdict(float)
