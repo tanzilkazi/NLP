@@ -1,11 +1,23 @@
+#!/usr/bin/env python
 
-#from __future__ import print_function, division
+# Implementation of Multinomial Naive Bayes.
+# see also:
+# https://nlp.stanford.edu/IR-book/html/htmledition/naive-bayes-text-classification-1.html
+
+from __future__ import print_function, division
 from collections import defaultdict, Counter
 import os
 import random
 import math
-from nltk.corpus import movie_reviews
 
+# ROOT = os.path.expanduser('~/nltk_data/corpora/movie_reviews')
+# # collect (class, filename) pairs
+# pos = [('pos', ROOT + '/pos/' + f)
+#        for f in os.listdir(ROOT + '/pos')]
+# neg = [('neg', ROOT + '/neg/' + f)
+#        for f in os.listdir(ROOT + '/neg')]
+# files = pos + neg
+#
 ROOT = os.path.expanduser(r"C:\Users\kazit\AppData\Roaming\nltk_data\corpora\movie_reviews")
 # collect (class, filename) pairs
 pos = [('pos', ROOT + "\\pos\\" + f)
@@ -21,42 +33,45 @@ random.shuffle(files)
 test = files[:len(files) // 5]
 train = files[len(files) // 5:]
 
-feature_counts = defaultdict(float)
-prior = defaultdict(float)
+feature_names = set()
+feature_counts = Counter()
+klass_totals = Counter()
+prior = Counter()
 ndocs = 0
+
+
+def extract_features(filename):
+    return Counter(open(filename, 'rU').read().lower().split())
+
 
 for klass, filename in train:
     # get the bag of words in each file
-    tokens = open(filename, 'rU').read().lower().split()
-    text_counts = Counter(tokens)
-
+    text_counts = extract_features(filename)
     # TODO #3: handle arbitrary features
-
     for feat in text_counts:
         # record how often each word co-occurs with a particular class label
         feature_counts[feat, klass] += text_counts[feat]
+        klass_totals[klass] += text_counts[feat]
+        feature_names.add(feat)
     prior[klass] += 1
     ndocs += 1
 
+smoothing_const = 1
+n_features = len(feature_names)
 
 ncorrect = 0
 nexamples = 0
 for correct, filename in test:
-    text_counts = Counter(open(filename, 'rU').read().lower().split())
+    text_counts = extract_features(filename)
     log_proba = defaultdict(float)
     for klass in prior.keys():
-        # add log probability of class (i.e. prior probability):
+        # add log probability component from prior:
         log_proba[klass] += math.log(prior[klass] / ndocs)
-
-        # add log probability of document given class:
-
-        # TODO #1: add log probability for each found feature given class
-        # TODO #2: implement Laplace (or Lidstone) smoothing by assuming
-        #          a fake document in each class including all features
-        #          and another with no features. Note this should not
-        #          affect the prior.
-        #for feat in text_counts:
-        # TODO: log_proba[klass] += ...
+        # add log probability component per feature
+        for feat in text_counts:
+            p_i_klass = ((feature_counts[feat, klass] + smoothing_const) /
+                         (klass_totals[klass] + smoothing_const * n_features))
+            log_proba[klass] += text_counts[feat] * math.log(p_i_klass)
 
     # order the classes by descending probability
     log_proba = [(v, k) for k, v in log_proba.items()]
