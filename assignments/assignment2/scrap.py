@@ -5,10 +5,20 @@ import numpy as np
 import string
 from scipy import sparse
 from sklearn.model_selection import KFold
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegressionCV
 from sklearn.model_selection import cross_val_score
 from sklearn import preprocessing
 import time
+
+def sparsity_ratio(X):
+    return 1.0 - np.count_nonzero(X) / float(X.shape[0] * X.shape[1])
+
+def LR_baseline(corpus):
+    vec = CountVectorizer()
+    corpus_vec = vec.fit_transform(corpus["title_body"])
+    corpus_np = corpus_vec.toarray()
+    print("input sparsity ratio: {:0.1f}%".format(sparsity_ratio(corpus_np)*100))
+    return corpus_vec
 
 if __name__ == "__main__":
     time_taken = time.clock()
@@ -26,30 +36,30 @@ if __name__ == "__main__":
     corpus["title_body"] = corpus["title_body"].str.lower()
     corpus["title_body"] = corpus["title_body"].str.replace('[{}]'.format(string.punctuation), '')
 
-    vec = CountVectorizer()
-    corpus_vec = vec.fit_transform(corpus["title_body"])
-    corpus_np = corpus_vec.toarray()
-    corpus_scaled = preprocessing.scale(corpus_np)
+    corpus_formatted = LR_baseline(corpus)
+
     print("Preprocessing data: {:0.3f}s".format(time.clock() - time_taken))
     time_taken = time.clock()
 
     # cross validation
     #Kf = KFold(n_splits=10,shuffle=True)
-    LR = LogisticRegression(penalty="l2",
-                            solver="sag",
-                            multi_class="ovr",
-                            warm_start=True,
-                            n_jobs=-1,
-                            max_iter=3,
-                            tol=0.1
-                            )
-    i = 0
+    LR = LogisticRegressionCV(Cs=10,
+                              penalty="l2",
+                              solver="sag",
+                              multi_class="multinomial",
+                              scoring="accuracy",
+                              refit=True,
+                              n_jobs=7,
+                              max_iter=5
+                              )
+
     print(cross_val_score(LR,
-                          corpus_scaled,
+                          corpus_formatted,
                           corpus["annotation"],
                           cv=10,
-                          n_jobs=-1,
+                          n_jobs=7,
                           scoring="accuracy"))
+
     print("Predicted: {:0.3f}s".format(time.clock() - time_taken))
     time_taken = time.clock()
 
