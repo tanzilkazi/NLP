@@ -10,15 +10,37 @@ from sklearn.model_selection import cross_val_score
 from sklearn import preprocessing
 import time
 
-def sparsity_ratio(X):
-    return 1.0 - np.count_nonzero(X) / float(X.shape[0] * X.shape[1])
+time_taken = 0
 
 def LR_baseline(corpus):
+    # combine title and body into one column
+    corpus["title_body"] = corpus["title"] + " " + corpus["body"]
+    corpus = corpus.drop(["title", "body"], axis=1)
+
+    # lower case and remove punctuations
+    corpus["title_body"] = corpus["title_body"].str.lower()
+    corpus["title_body"] = corpus["title_body"].str.replace('[{}]'.format(string.punctuation), '')
+
     vec = CountVectorizer()
     corpus_vec = vec.fit_transform(corpus["title_body"])
     corpus_np = corpus_vec.toarray()
     print("input sparsity ratio: {:0.1f}%".format(sparsity_ratio(corpus_np)*100))
     return corpus_vec
+
+def train_and_test_LR(X,Y):
+    LR = LogisticRegressionCV(Cs=10,penalty="l2",solver="sag",multi_class="multinomial",
+                              scoring="accuracy",refit=True,n_jobs=7,max_iter=5)
+    print(cross_val_score(LR,X,Y,cv=10,n_jobs=7,scoring="accuracy"))
+    return LR
+
+def sparsity_ratio(X):
+    return 1.0 - np.count_nonzero(X) / float(X.shape[0] * X.shape[1])
+
+def elapsed_time(s):
+    global time_taken
+    print(s,": {:0.3f}s".format(time.clock() - time_taken))
+    time_taken = time.clock()
+
 
 if __name__ == "__main__":
     time_taken = time.clock()
@@ -27,41 +49,24 @@ if __name__ == "__main__":
     topic_file = pd.read_csv("topic.csv")
     virality_file = pd.read_csv("virality.csv")
 
-    # combine title and body into one column
     corpus = topic_file
-    corpus["title_body"] = corpus["title"] + " " + corpus["body"]
-    corpus = corpus.drop(["title", "body"], axis=1)
-
-    # lower case and remove punctuations
-    corpus["title_body"] = corpus["title_body"].str.lower()
-    corpus["title_body"] = corpus["title_body"].str.replace('[{}]'.format(string.punctuation), '')
 
     corpus_formatted = LR_baseline(corpus)
 
-    print("Preprocessing data: {:0.3f}s".format(time.clock() - time_taken))
-    time_taken = time.clock()
+    elapsed_time("Pre-processing data")
 
-    # cross validation
-    #Kf = KFold(n_splits=10,shuffle=True)
-    LR = LogisticRegressionCV(Cs=10,
-                              penalty="l2",
-                              solver="sag",
-                              multi_class="multinomial",
-                              scoring="accuracy",
-                              refit=True,
-                              n_jobs=7,
-                              max_iter=5
-                              )
+    LR = train_and_test_LR(corpus_formatted,corpus["annotation"])
+    elapsed_time("To train and evaluate")
 
-    print(cross_val_score(LR,
-                          corpus_formatted,
-                          corpus["annotation"],
-                          cv=10,
-                          n_jobs=7,
-                          scoring="accuracy"))
+    model = LR.fit(corpus_formatted,corpus["annotation"])
+    results = model.predict(corpus_formatted)
+    elapsed_time("Prediction complete")
 
-    print("Predicted: {:0.3f}s".format(time.clock() - time_taken))
-    time_taken = time.clock()
+    output = topic_file
+    output["results"] = pd.Series(results)
+    output.drop(["title_body"],axis=1)
+    output.to_csv("predictions.csv")
+
 
     # for train_index,test_index in Kf.split(corpus_np):
     #     corpus_scaled = preprocessing.scale(corpus_np[train_index])
