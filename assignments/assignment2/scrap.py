@@ -33,11 +33,7 @@ def experiment0(data):
     return corpus_vec
 
 def experiment1(corpus):
-    # combine title and body into one column
-    # corpus["title_body"] = corpus["title"] + " " + corpus["body"]
-    # corpus = corpus.drop(["title", "body"], axis=1)
 
-    # lower case and remove punctuations
     corpus["title"] = corpus["title"].str.lower()
     corpus["title"] = corpus["title"].str.replace('[{}]'.format(string.punctuation), '')
 
@@ -59,13 +55,19 @@ def elapsed_time(s):
 if __name__ == "__main__":
     time_taken = time.clock()
 
+    experiment = {
+        '1': experiment0,
+        '2': experiment1
+    }
+    chosen_experiment = experiment['1']
+
     # import input data
     topic_file = pd.read_csv("topic.csv")
     virality_file = pd.read_csv("virality.csv")
     corpus = topic_file.drop(["annotation"],axis=1,inplace=False)
     corpus_annotation = topic_file["annotation"]
 
-    corpus_formatted = experiment0(corpus)
+    corpus_formatted = chosen_experiment(corpus)
     print("Shape of vectorized data:",corpus_formatted.shape)
     elapsed_time("Pre-processing data")
 
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     elapsed_time("To train and evaluate")
 
     train_X, test_X, train_Y, test_Y = train_test_split(corpus,corpus_annotation,train_size=0.9,random_state=2)
-    corpus_sparse = experiment0(corpus)
+    corpus_sparse = chosen_experiment(corpus)
     model = LR.fit(corpus_sparse[train_X.index.tolist()],train_Y)
     results = model.predict(corpus_sparse[test_X.index.tolist()])
     elapsed_time("Prediction complete")
