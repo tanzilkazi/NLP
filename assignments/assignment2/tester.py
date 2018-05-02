@@ -26,5 +26,7 @@ df = pd.DataFrame(data=d)
 #     print(df["cat"][test_index])
 #
 
-array = [60,61,34,65,90,23,60,60]
-print(np.std(array))
+topic_file = pd.read_csv("topic.csv")
+body = topic_file["body"]
+print(topic_file["body"][41])
+print(repr(topic_file["body"][41]))
