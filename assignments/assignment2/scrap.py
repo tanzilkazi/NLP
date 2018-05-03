@@ -1,6 +1,7 @@
 import pandas as pd
 from collections import defaultdict, Counter
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 import string
 from scipy import sparse
@@ -13,6 +14,9 @@ from sklearn.model_selection import ShuffleSplit
 import sklearn.metrics as mets
 import time
 import warnings
+from nltk.corpus import stopwords
+import nltk as nl
+from nltk.tokenize import WhitespaceTokenizer
 
 warnings.filterwarnings("ignore")
 time_taken = 0
@@ -34,27 +38,52 @@ def experiment0(data):
     print("Input sparsity ratio: {:0.1f}%".format(sparsity_ratio(corpus_np)*100))
     return corpus_vec
 
-def experiment1(corpus):
+def experiment1(data):
     print("Running experiment 1...")
-    corpus["title"] = corpus["title"].str.lower()
-    corpus["title"] = corpus["title"].str.replace('[{}]'.format(string.punctuation), '')
+    data["title"] = data["title"].str.lower()
+    data["title"] = data["title"].str.replace('[{}]'.format(string.punctuation), '')
 
-    sent_list = corpus["body"].str.split("\n").values
-    corpus["first_sent"] = pd.Series([x[0] for x in sent_list])
-    corpus["first_sent"] = corpus["first_sent"].str.lower()
-    corpus["first_sent"] = corpus["first_sent"].str.replace('[{}]'.format(string.punctuation), '')
+    sent_list = data["body"].str.split("\n").values
+    data["first_sent"] = pd.Series([x[0] for x in sent_list])
+    data["first_sent"] = data["first_sent"].str.lower()
+    data["first_sent"] = data["first_sent"].str.replace('[{}]'.format(string.punctuation), '')
     vec = CountVectorizer(ngram_range=(3, 3))
-    corpus_vec = vec.fit_transform(corpus["title"]+ " " + corpus["first_sent"])
+    corpus_vec = vec.fit_transform(data["title"] + " " + data["first_sent"])
 
     corpus_np = corpus_vec.toarray()
-
     print("Input sparsity ratio: {:0.1f}%".format(sparsity_ratio(corpus_np) * 100))
-    print("Shape of vectorized data:", corpus_np.shape)
+
     return corpus_vec
 
-def experiment2(corpus):
+def experiment2(data):
     print("Running experiment 2...")
+    # combine title and body into one column
+    data["title_body"] = data["title"] + " " + data["body"]
+    data = data.drop(["title", "body"], axis=1)
 
+    # lower case and remove punctuations
+    data["title_body"] = data["title_body"].str.replace('[{}]'.format(string.punctuation), '')
+
+    vec=TfidfVectorizer(lowercase=True,stop_words="english")
+    corpus_vec = vec.fit_transform(data["title_body"])
+    return corpus_vec
+
+def experiment3(data):
+    print("Running experiment 3...")
+    # combine title and body into one column
+    data["title_body"] = data["title"] + " " + data["body"]
+    data = data.drop(["title", "body"], axis=1)
+
+    tokenized = data["title_body"].apply(WhitespaceTokenizer().tokenize)
+    no_stops = tokenized.apply(lambda title_body: [word for word in title_body if word not in stopwords.words("english")])
+    # remove punctuations
+    translator = str.maketrans('', '', string.punctuation)
+
+    data["title_body"] = no_stops.apply(lambda documents: [word.translate(translator) for word in documents])
+    data["title_body"] = data["title_body"].apply(lambda listt: " ".join(listt))
+    vec=TfidfVectorizer(lowercase=True)
+    corpus_vec = vec.fit_transform(data["title_body"])
+    return corpus_vec
 
 def sparsity_ratio(X):
     return 1.0 - np.count_nonzero(X) / float(X.shape[0] * X.shape[1])
@@ -72,8 +101,9 @@ if __name__ == "__main__":
         "0": experiment0,
         "1": experiment1,
         "2": experiment2,
+        "3": experiment3
     }
-    chosen_experiment = experiment["1"]
+    chosen_experiment = experiment["3"]
 
     # import input data
     topic_file = pd.read_csv("topic.csv")
@@ -82,6 +112,7 @@ if __name__ == "__main__":
     corpus_annotation = topic_file["annotation"]
 
     corpus_formatted = chosen_experiment(corpus)
+    print("Shape of vectorized data:", corpus_formatted.shape)
     elapsed_time("Pre-processing data")
 
     accuracy_vec = []
