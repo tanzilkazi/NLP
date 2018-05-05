@@ -50,7 +50,7 @@ def experiment1(data):
     data["first_sent"] = pd.Series([x[0] for x in sent_list])
     data["first_sent"] = data["first_sent"].str.lower()
     data["first_sent"] = data["first_sent"].str.replace('[{}]'.format(string.punctuation), '')
-    vec = CountVectorizer(ngram_range=(3, 3))
+    vec = CountVectorizer(ngram_range=(2, 2))
     corpus_vec = vec.fit_transform(data["title"] + " " + data["first_sent"])
 
     corpus_np = corpus_vec.toarray()
@@ -86,14 +86,20 @@ def experiment3(data):
 
     data["title_body"] = no_stops.apply(lambda documents: [word.translate(translator) for word in documents])
     data["title_body"] = data["title_body"].apply(lambda listt: " ".join(listt))
-    vec=TfidfVectorizer(lowercase=True)
+    vec=TfidfVectorizer(lowercase=True,max_df=0.8)
     corpus_vec = vec.fit_transform(data["title_body"])
     return corpus_vec
 
 def experiment4(data):
     print("Running experiment 4...")
     #tfidf + bigrams + stopwords
-
+    # combine title and body into one column
+    data["title_body"] = data["title"] + " " + data["body"]
+    data = data.drop(["title", "body"], axis=1)
+    data["title_body"] = data["title_body"].str.replace('[{}]'.format(string.punctuation), '')
+    vec = TfidfVectorizer(lowercase=True,stop_words="english",ngram_range=(2, 2),max_df=0.8,max_features=10000)
+    corpus_vec = vec.fit_transform(data["title_body"])
+    return corpus_vec
 
 def experiment5(data):
     print("Running experiment 5...")
@@ -120,25 +126,6 @@ def experiment5(data):
     print("Input sparsity ratio: {:0.1f}%".format(sparsity_ratio(corpus_vec ) * 100))
     return corpus_vec
 
-    # vec = TfidfVectorizer(lowercase=True, stop_words="english")
-    # corpus_vec = vec.fit_transform(data["title_body"])
-    #
-    # pca = PCA(n_components=2,svd_solver="full")
-    # pca_comp = pca.fit(corpus_vec)
-    #
-    # print(pca_comp)
-    # data["word_count"] = tokens.apply(len)
-    # data["unique_word_count"] = tokens.apply(set).apply(len)
-    # data["mean_word_len"] = tokens.apply(lambda x: np.mean([len(i) for i in x]))
-    # data["lex_rich"] = data["unique_word_count"]/data["word_count"]
-    # stylo = data[["word_count","unique_word_count","mean_word_len","lex_rich"]]
-    # stylo = (stylo - stylo.mean()) / stylo.std()
-
-
-def experiment6(data):
-    print("Running experiment 6...")
-
-
 def sparsity_ratio(X):
     return 1.0 - np.count_nonzero(X) / float(X.shape[0] * X.shape[1])
 
@@ -151,7 +138,7 @@ if __name__ == "__main__":
     time_taken = time.clock()
     start_time = time_taken
 
-    exp_to_run = "5"
+    exp_to_run = "4"
 
     experiment = {
         "0": experiment0,
@@ -161,7 +148,7 @@ if __name__ == "__main__":
         "4": experiment4,
         "5": experiment5
     }
-    chosen_experiment = experiment["5"]
+    chosen_experiment = experiment[exp_to_run]
 
     # import input data
     topic_file = pd.read_csv("topic.csv")
@@ -198,7 +185,7 @@ if __name__ == "__main__":
     output_df["results"] = pd.Series(results,index=test_X.index.tolist())
     if "title_body" in output_df.columns:
         output_df.drop(["title_body"],axis=1)
-    output_df.to_csv("predictions.csv")
+    output_df.to_csv("predictions"+exp_to_run+".csv")
 
     print("Total time taken: {:0.1f}s".format(time.clock() - start_time))
 

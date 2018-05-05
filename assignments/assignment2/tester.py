@@ -25,10 +25,9 @@ import os
 # fit = vec.fit_transform(df["str"])
 #
 
-import spacy
+x = [["A","B","C","D"],
+     ["A","A","B","A"]
+     ["R","A","D","D"]]
 
-nlp = spacy.load('en_core_web_sm')
-doc = nlp(u'The President of the United States')
-
-for ent in doc.ents:
-    print(ent.text, ent.start_char, ent.end_char, ent.label_)
+for i in x:
+    print()
