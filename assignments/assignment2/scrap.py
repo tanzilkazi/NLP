@@ -17,6 +17,8 @@ import warnings
 from nltk.corpus import stopwords
 import nltk as nl
 from nltk.tokenize import WhitespaceTokenizer
+import spacy as sp
+from sklearn.decomposition import PCA
 
 warnings.filterwarnings("ignore")
 time_taken = 0
@@ -39,6 +41,7 @@ def experiment0(data):
     return corpus_vec
 
 def experiment1(data):
+    # title + first sent + bag of words
     print("Running experiment 1...")
     data["title"] = data["title"].str.lower()
     data["title"] = data["title"].str.replace('[{}]'.format(string.punctuation), '')
@@ -56,6 +59,7 @@ def experiment1(data):
     return corpus_vec
 
 def experiment2(data):
+    # simple remove punctuation, tfidf
     print("Running experiment 2...")
     # combine title and body into one column
     data["title_body"] = data["title"] + " " + data["body"]
@@ -69,6 +73,7 @@ def experiment2(data):
     return corpus_vec
 
 def experiment3(data):
+    #tokenize with whitespace, remove stopwords, remove punctuation, tfidf
     print("Running experiment 3...")
     # combine title and body into one column
     data["title_body"] = data["title"] + " " + data["body"]
@@ -84,6 +89,41 @@ def experiment3(data):
     vec=TfidfVectorizer(lowercase=True)
     corpus_vec = vec.fit_transform(data["title_body"])
     return corpus_vec
+
+def experiment4(data):
+    print("Running experiment 4...")
+    #tfidf + bigrams + stopwords
+
+
+def experiment5(data):
+    print("Running experiment 5...")
+    data["title_body"] = data["title"] + " " + data["body"]
+    data = data.drop(["title", "body"], axis=1)
+
+    # lower case and remove punctuations
+    data["title_body"] = data["title_body"].str.replace('[{}]'.format(string.punctuation), '')
+
+    vec = TfidfVectorizer(lowercase=True, stop_words="english")
+    corpus_vec = vec.fit_transform(data["title_body"])
+
+    pca = PCA(n_components=2,svd_solver="full")
+    pca_comp = pca.fit(corpus_vec)
+
+    print(pca_comp)
+    return corpus_vec
+
+
+    # data["word_count"] = tokens.apply(len)
+    # data["unique_word_count"] = tokens.apply(set).apply(len)
+    # data["mean_word_len"] = tokens.apply(lambda x: np.mean([len(i) for i in x]))
+    # data["lex_rich"] = data["unique_word_count"]/data["word_count"]
+    # stylo = data[["word_count","unique_word_count","mean_word_len","lex_rich"]]
+    # stylo = (stylo - stylo.mean()) / stylo.std()
+
+
+def experiment6(data):
+    print("Running experiment 6...")
+
 
 def sparsity_ratio(X):
     return 1.0 - np.count_nonzero(X) / float(X.shape[0] * X.shape[1])
@@ -101,9 +141,11 @@ if __name__ == "__main__":
         "0": experiment0,
         "1": experiment1,
         "2": experiment2,
-        "3": experiment3
+        "3": experiment3,
+        "4": experiment4,
+        "5": experiment5
     }
-    chosen_experiment = experiment["3"]
+    chosen_experiment = experiment["5"]
 
     # import input data
     topic_file = pd.read_csv("topic.csv")
@@ -117,11 +159,12 @@ if __name__ == "__main__":
 
     accuracy_vec = []
     LR = LogisticRegression(penalty="l2", solver="sag", multi_class="multinomial",
-                            warm_start=True, n_jobs=-1, max_iter=30)
+                            warm_start=True, n_jobs=1, max_iter=20)
     cv = ShuffleSplit(n_splits=10, train_size=0.9)
     num_loops = 0
     while (num_loops < 10):
-        accuracy = cross_val_score(LR, corpus_formatted, corpus_annotation, cv=cv, n_jobs=-1, scoring="accuracy")
+        print(num_loops)
+        accuracy = cross_val_score(LR, corpus_formatted, corpus_annotation, cv=cv, n_jobs=1, scoring="accuracy")
         accuracy_vec.append(np.mean(accuracy) * 100)
         num_loops = num_loops + 1
 
