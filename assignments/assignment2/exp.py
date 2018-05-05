@@ -68,7 +68,7 @@ def experiment2(data):
     # lower case and remove punctuations
     data["title_body"] = data["title_body"].str.replace('[{}]'.format(string.punctuation), '')
 
-    vec=TfidfVectorizer(lowercase=True,stop_words="english")
+    vec=TfidfVectorizer(lowercase=True,stop_words="english",min_df = 0.01, max_df=0.5)
     corpus_vec = vec.fit_transform(data["title_body"])
     return corpus_vec
 
@@ -97,7 +97,7 @@ def experiment4(data):
     data["title_body"] = data["title"] + " " + data["body"]
     data = data.drop(["title", "body"], axis=1)
     data["title_body"] = data["title_body"].str.replace('[{}]'.format(string.punctuation), '')
-    vec = TfidfVectorizer(lowercase=True,stop_words="english",ngram_range=(2, 2),max_df=0.8,max_features=10000)
+    vec = TfidfVectorizer(lowercase=True,stop_words="english",ngram_range=(1, 2),max_features=12000)
     corpus_vec = vec.fit_transform(data["title_body"])
     return corpus_vec
 
