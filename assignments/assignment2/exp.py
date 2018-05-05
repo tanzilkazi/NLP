@@ -7,7 +7,7 @@ import string
 from scipy import sparse
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.model_selection import ShuffleSplit
@@ -20,6 +20,8 @@ from nltk.tokenize import WhitespaceTokenizer
 import spacy as sp
 from sklearn.decomposition import PCA
 from scipy.sparse import  hstack
+import seaborn as sb
+import matplotlib.pyplot as plot
 warnings.filterwarnings("ignore")
 time_taken = 0
 
@@ -50,7 +52,7 @@ def experiment1(data):
     data["first_sent"] = pd.Series([x[0] for x in sent_list])
     data["first_sent"] = data["first_sent"].str.lower()
     data["first_sent"] = data["first_sent"].str.replace('[{}]'.format(string.punctuation), '')
-    vec = CountVectorizer(ngram_range=(2, 2))
+    vec = CountVectorizer(ngram_range=(1, 2))
     corpus_vec = vec.fit_transform(data["title"] + " " + data["first_sent"])
 
     corpus_np = corpus_vec.toarray()
@@ -138,56 +140,84 @@ if __name__ == "__main__":
     time_taken = time.clock()
     start_time = time_taken
 
-    exp_to_run = "4"
+    exp_list = ["0","1","2","3","4","5"]
+    for exp_to_run in exp_list:
+        time_taken = time.clock()
+        start_time = time_taken
 
-    experiment = {
-        "0": experiment0,
-        "1": experiment1,
-        "2": experiment2,
-        "3": experiment3,
-        "4": experiment4,
-        "5": experiment5
-    }
-    chosen_experiment = experiment[exp_to_run]
+        experiment = {
+            "0": experiment0,
+            "1": experiment1,
+            "2": experiment2,
+            "3": experiment3,
+            "4": experiment4,
+            "5": experiment5
+        }
+        chosen_experiment = experiment[exp_to_run]
 
-    # import input data
-    topic_file = pd.read_csv("topic.csv")
-    virality_file = pd.read_csv("virality.csv")
-    corpus = topic_file.drop(["annotation"],axis=1,inplace=False)
-    corpus_annotation = topic_file["annotation"]
+        # import input data
+        topic_file = pd.read_csv("topic.csv")
+        virality_file = pd.read_csv("virality.csv")
+        corpus = topic_file.drop(["annotation"],axis=1,inplace=False)
+        corpus_annotation = topic_file["annotation"]
 
-    corpus_formatted = chosen_experiment(corpus)
-    print("Shape of vectorized data:", corpus_formatted.shape)
-    elapsed_time("Pre-processing data")
+        corpus_formatted = chosen_experiment(corpus)
+        print("Shape of vectorized data:", corpus_formatted.shape)
+        elapsed_time("Time to vectorize data")
 
-    accuracy_vec = []
-    LR = LogisticRegression(penalty="l2", solver="sag", multi_class="multinomial",
-                            warm_start=True, n_jobs=-1, max_iter=20)
-    cv = ShuffleSplit(n_splits=10, train_size=0.9)
-    num_loops = 0
-    while (num_loops < 10):
-        accuracy = cross_val_score(LR, corpus_formatted, corpus_annotation, cv=cv, n_jobs=-1, scoring="accuracy")
-        accuracy_vec.append(np.mean(accuracy) * 100)
-        num_loops = num_loops + 1
+        accuracy_vec = []
+        f1_weighted_vec = []
+        LR = LogisticRegression(penalty="l2", solver="sag", multi_class="multinomial",
+                                warm_start=True, n_jobs=-1, max_iter=20)
+        cv = ShuffleSplit(n_splits=10, train_size=0.9)
+        num_loops = 0
+        while (num_loops < 10):
+            accuracy = cross_validate(LR, corpus_formatted, corpus_annotation, cv=cv, n_jobs=-1, scoring=["accuracy","f1_weighted"])
+            accuracy_vec.append(np.mean(accuracy['test_accuracy']) * 100)
+            f1_weighted_vec.append(np.mean(accuracy['test_f1_weighted']) * 100)
+            num_loops = num_loops + 1
 
-    print("Mean accuracy: {:0.1f} +- {:0.1f}".format(np.mean(accuracy_vec),np.std(accuracy_vec)))
-    elapsed_time("To train and evaluate")
+        print("Mean accuracy: {:0.1f} +- {:0.1f}".format(np.mean(accuracy_vec),np.std(accuracy_vec)))
+        print("Mean f1-weighted: {:0.1f} +- {:0.1f}".format(np.mean(f1_weighted_vec), np.std(f1_weighted_vec)))
 
-    train_X, test_X, train_Y, test_Y = train_test_split(corpus,corpus_annotation,train_size=0.9,random_state=2)
-    corpus_sparse = chosen_experiment(corpus)
-    model = LR.fit(corpus_sparse[train_X.index.tolist()],train_Y)
-    results = model.predict(corpus_sparse[test_X.index.tolist()])
-    print("Prediction accuracy: {:0.1f}".format(mets.accuracy_score(test_Y,results)*100))
-    elapsed_time("Prediction complete")
+        elapsed_time("Time to train and evaluate")
 
-    output_df = pd.DataFrame(corpus.iloc[test_X.index.tolist(),])
-    output_df["annotation"] = corpus_annotation[test_X.index.tolist()]
-    output_df["results"] = pd.Series(results,index=test_X.index.tolist())
-    if "title_body" in output_df.columns:
-        output_df.drop(["title_body"],axis=1)
-    output_df.to_csv("predictions"+exp_to_run+".csv")
+        print("\nModel validation:")
 
-    print("Total time taken: {:0.1f}s".format(time.clock() - start_time))
+        classes = ["Business","Entertainment","Error","Health","Other","Politics","Science and Technology","Society","Sports","War"]
+
+        train_X, test_X, train_Y, test_Y = train_test_split(corpus,corpus_annotation,train_size=0.9,random_state=2)
+        corpus_sparse = chosen_experiment(corpus)
+        model = LR.fit(corpus_sparse[train_X.index.tolist()],train_Y)
+        results = model.predict(corpus_sparse[test_X.index.tolist()])
+        print("Overall prediction accuracy: {:0.1f}".format(mets.accuracy_score(test_Y,results)*100))
+        print("Overall prediction f1-weighted: {:0.1f}".format(mets.f1_score(test_Y, results, average="weighted") * 100))
+        print(mets.classification_report(test_Y, results,target_names=classes))
+
+        elapsed_time("Time to complete prediction")
+
+        output_df = pd.DataFrame(corpus.iloc[test_X.index.tolist(),])
+        output_df["annotation"] = corpus_annotation[test_X.index.tolist()]
+        output_df["results"] = pd.Series(results,index=test_X.index.tolist())
+        if "title_body" in output_df.columns:
+            output_df.drop(["title_body"],axis=1)
+        output_df.to_csv("predictions"+exp_to_run+".csv")
+
+        # Confusion Matrix
+        conf_matrix = mets.confusion_matrix(test_Y, results, labels=classes)
+        df_conf_matrix = pd.DataFrame(conf_matrix, index=classes, columns=classes)
+
+        fig = plot.figure(figsize=(10, 10),tight_layout=True)
+        conf_map = sb.heatmap(df_conf_matrix, annot=True, cmap="Blues", linewidths=0.5, linecolor="black", cbar=False,
+                              square=True)
+        plot.xticks(rotation=90)
+        plot.yticks(rotation=0)
+        plot.xlabel("Predicted classes")
+        plot.ylabel("True classes")
+
+        print("Total time taken: {:0.1f}s".format(time.clock() - start_time))
+        plot.savefig("predictions_conf"+exp_to_run+".png")
+        print("\n")
 
     # for train_index,test_index in Kf.split(corpus_np):
     #     corpus_scaled = preprocessing.scale(corpus_np[train_index])
