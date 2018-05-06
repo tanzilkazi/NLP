@@ -1,3 +1,4 @@
+from collections import Counter
 import numpy as np
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
@@ -25,9 +26,11 @@ import os
 # fit = vec.fit_transform(df["str"])
 #
 
-x = [["A","B","C","D"],
-     ["A","A","B","A"]
-     ["R","A","D","D"]]
+topic_file = pd.read_csv("topic.csv")
+counts = Counter(topic_file["annotation"])
+total = 0
 
-for i in x:
-    print()
+ele = counts.keys()
+for k in ele:
+    print("{}: {:0.1f}%".format(k, (counts[k] / sum(counts.values()) * 100)))
+
