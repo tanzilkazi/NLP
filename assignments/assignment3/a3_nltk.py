@@ -5,11 +5,7 @@ from nltk import word_tokenize, pos_tag, ne_chunk, tokenize
 from nltk import tree2conlltags
 from _collections import defaultdict
 
-# tree = ne_chunk(pos_tag(word_tokenize("apple is a company")))
-# print(tree)
-#
-# iob_tags = tree2conlltags(tree)
-# print(iob_tags)
+BREAK_COUNT = 20
 
 def conll2string(file):
     text = ""
@@ -21,8 +17,8 @@ def conll2string(file):
             else:
                 text = text + " " + line.split(sep=" ")[0]
             count = count + 1
-            # if count == 60:
-            #     break
+            if count == BREAK_COUNT:
+                break
     return text
 
 def ner_nltk(text):
@@ -51,6 +47,7 @@ def write2file(data,file):
 def output_format(in_file,named_ents):
     count = 0
     output = []
+    break_count = 0
     with open(in_file) as file:
         for line in file:
             if line == '\n':
@@ -58,13 +55,16 @@ def output_format(in_file,named_ents):
             else:
                 line = line.strip("\n")
                 out = line.split(sep=" ")
-                out.append(named_ents[count][2])
+                out.append(named_ents[count][-1])
                 if out[0] != named_ents[count][0]:
                     print("\tinput and ner out of sync, exiting\n")
                     print("\tout:", out, "\n\tner:", named_ents[count])
                 count = count + 1
                 output.append(out)
-    output = nltk2conll_mapper(output)
+            break_count = break_count + 1
+            if break_count == BREAK_COUNT:
+                break
+    #output = nltk2conll_mapper(output)
     return output
 
 
@@ -96,4 +96,5 @@ if __name__ == "__main__":
     text = conll2string(INPUT_FILE)
     ners = ner_nltk(text)
     out = output_format(INPUT_FILE,ners)
-    write2file(out,OUTPUT_FILE)
+    print(out)
+    #write2file(out,OUTPUT_FILE)
