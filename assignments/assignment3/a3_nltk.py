@@ -1,6 +1,3 @@
-import csv
-
-import nltk as nl
 from nltk import word_tokenize, pos_tag, ne_chunk, tokenize
 from nltk import tree2conlltags
 from _collections import defaultdict
@@ -45,7 +42,7 @@ def write2file(data,file):
     return True
 
 def output_format(in_file,named_ents):
-    count = 0
+    count_ents = 0
     output = []
     break_count = 0
     with open(in_file) as file:
@@ -55,11 +52,11 @@ def output_format(in_file,named_ents):
             else:
                 line = line.strip("\n")
                 out = line.split(sep=" ")
-                out.append(named_ents[count][-1])
-                if out[0] != named_ents[count][0]:
+                out.append(named_ents[count_ents][-1])
+                if out[0] != named_ents[count_ents][0]:
                     print("\tinput and ner out of sync, exiting\n")
-                    print("\tout:", out, "\n\tner:", named_ents[count])
-                count = count + 1
+                    print("\tout:", out, "\n\tner:", named_ents[count_ents])
+                    count_ents = count_ents + 1
                 output.append(out)
             break_count = break_count + 1
             if break_count == BREAK_COUNT:

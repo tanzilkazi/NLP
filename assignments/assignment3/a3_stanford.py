@@ -1,8 +1,5 @@
-
 import os
 import nltk as nl
-from nltk import word_tokenize, pos_tag, ne_chunk, tokenize
-from nltk import tree2conlltags
 
 STANFORD_NER = r".\stanford\stanford-ner-2018-02-27\stanford-ner.jar"
 STANFORD_POS = r".\stanford\stanford-postagger-full-2018-02-27\stanford-postagger.jar"
@@ -36,6 +33,19 @@ def ner_stanford(text):
         for tup in ner:
             ner_list.append(tup)
     return ner_list
+
+def write2file(data,file):
+    with open(file,"w") as f:
+        for tag in data:
+            str_line = ""
+            for item in tag:
+                str_line = str_line + " " + str(item)
+            str_line = str_line.strip()
+            if str_line != "\n":
+                str_line = str_line + "\n"
+            f.write(str_line)
+    print("Output written to file "+ file)
+    return True
 
 def output_format(in_file,named_ents):
     count_ents = 0
@@ -75,19 +85,6 @@ def nltk2conll_mapper(data):
             data[index][-1] = mapper[data[index][-1]]
         index = index + 1
     return data
-
-def write2file(data,file):
-    with open(file,"w") as f:
-        for tag in data:
-            str_line = ""
-            for item in tag:
-                str_line = str_line + " " + str(item)
-            str_line = str_line.strip()
-            if str_line != "\n":
-                str_line = str_line + "\n"
-            f.write(str_line)
-    print("Output written to file "+ file)
-    return True
 
 if __name__ == "__main__":
 
