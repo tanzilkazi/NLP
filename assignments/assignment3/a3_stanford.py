@@ -19,8 +19,8 @@ def conll2string(file):
             else:
                 text = text + " " + line.split(sep=" ")[0]
             count = count + 1
-            if count == BREAK_COUNT:
-                break
+            # if count == BREAK_COUNT:
+            #     break
     return text
 
 def ner_stanford(text):
@@ -67,8 +67,8 @@ def output_format(in_file,named_ents):
                 count_ents = count_ents + 1
                 output.append(out)
             break_count = break_count + 1
-            if break_count == BREAK_COUNT:
-                break
+            # if break_count == BREAK_COUNT:
+            #     break
     output = nltk2conll_mapper(output)
     return output
 
