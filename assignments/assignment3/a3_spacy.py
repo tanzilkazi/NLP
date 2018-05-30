@@ -3,7 +3,7 @@ import os
 BREAK_COUNT = 20
 
 def conll2spacytrain(file):
-    corpus_text = ""
+    corpus = []
     line_text = ""
     ent_list = []
     count = 0
@@ -12,9 +12,12 @@ def conll2spacytrain(file):
         for line in file:
             if len(line) == 1: # newline
                 line_text = line_text.strip()
-                str_ent_list = str(ent_list).strip()
-                str_ent_list = str_ent_list.replace(r"\\","").strip()
-                corpus_text = corpus_text + "(\"" + line_text + "\", {'entities':"+str_ent_list+ "}) "+ '\n'
+                ent_dict = {'entities':ent_list}
+                corpus.append((line_text,ent_dict))
+
+                # str_ent_list = str(ent_list).strip()
+                # str_ent_list = str_ent_list.replace(r"\\","").strip()
+                # corpus_text = corpus_text + "(\"" + line_text + "\", {'entities':"+str_ent_list+ "}) "+ '\n'
                 line_text = ""
                 ent_list = []
             else:
@@ -29,12 +32,12 @@ def conll2spacytrain(file):
             count = count + 1
             if count == BREAK_COUNT:
                 break
-    corpus_text = "["+corpus_text+"]"
-    return corpus_text
+    return corpus
 
 if __name__ == "__main__":
     INPUT_FILE = r".\conll03\eng.testb"
     OUTPUT_FILE = "spacy_train.txt"
     text = conll2spacytrain(INPUT_FILE)
-    with open(OUTPUT_FILE,"w") as f:
-        f.write(text)
+    print(text)
+    # with open(OUTPUT_FILE,"w") as f:
+    #     f.write(text)

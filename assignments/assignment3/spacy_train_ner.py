@@ -13,7 +13,7 @@ import plac
 import random
 from pathlib import Path
 import spacy
-
+import time
 
 # training data
 TRAIN_DATA = [
@@ -69,6 +69,7 @@ def main(model=None, output_dir=r".\spacy_model", n_iter=100):
         for itn in range(n_iter):
             random.shuffle(TRAIN_DATA)
             losses = {}
+            time_start = time.time()
             for text, annotations in TRAIN_DATA:
                 nlp.update(
                     [text],  # batch of texts
@@ -76,10 +77,10 @@ def main(model=None, output_dir=r".\spacy_model", n_iter=100):
                     drop=0.5,  # dropout - make it harder to memorise data
                     sgd=optimizer,  # callable to update weights
                     losses=losses)
-            print(losses)
+            print(losses, time.time()-time_start)
 
     # test the trained model
-    for text, _ in TRAIN_DATA:
+    for text, _ in TEST_DATA:
         doc = nlp(text)
         print('Entities', [(ent.text, ent.label_) for ent in doc.ents])
         print('Tokens', [(t.text, t.ent_type_, t.ent_iob) for t in doc])
@@ -95,15 +96,44 @@ def main(model=None, output_dir=r".\spacy_model", n_iter=100):
         # test the saved model
         print("Loading from", output_dir)
         nlp2 = spacy.load(output_dir)
-        for text, _ in TRAIN_DATA:
+        for text, _ in TEST_DATA:
             doc = nlp2(text)
             print('Entities', [(ent.text, ent.label_) for ent in doc.ents])
             print('Tokens', [(t.text, t.ent_type_, t.ent_iob) for t in doc])
 
 
+
+def conll2spacytrain(file):
+    BREAK_COUNT = 20
+    corpus = []
+    line_text = ""
+    ent_list = []
+    count = 0
+    tag = "O\n"
+    with open(INPUT_FILE) as file:
+        for line in file:
+            if len(line) == 1: # newline
+                line_text = line_text.strip()
+                ent_dict = {'entities':ent_list}
+                corpus.append((line_text,ent_dict))
+                line_text = ""
+                ent_list = []
+            else:
+                conll_line = line.split(sep=" ")
+                if conll_line[3] != tag:
+                    start_len = len(line_text)
+                    end_len = start_len+len(conll_line[0])
+                    ner_tag = conll_line[3]
+
+                    ent_list.append((start_len,end_len,ner_tag.replace("\n","")))
+                line_text = line_text + " " + line.split(sep=" ")[0]
+            count = count + 1
+            if count == BREAK_COUNT:
+                break
+    return corpus
+
 if __name__ == '__main__':
-    with open("spacy_train.txt") as f:
-        TRAIN_DATA = f.read()
-    TRAIN_DATA = TRAIN_DATA.strip("'")
+    INPUT_FILE = r".\conll03\eng.train"
+    TRAIN_DATA = conll2spacytrain(INPUT_FILE)
 
     plac.call(main)
