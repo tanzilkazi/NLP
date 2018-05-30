@@ -1,6 +1,6 @@
 import os
 
-BREAK_COUNT = 20
+BREAK_COUNT = 25
 
 def conll2spacytrain(file):
     corpus = []

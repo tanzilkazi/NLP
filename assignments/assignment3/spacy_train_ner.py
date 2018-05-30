@@ -104,36 +104,60 @@ def main(model=None, output_dir=r".\spacy_model", n_iter=100):
 
 
 def conll2spacytrain(file):
-    BREAK_COUNT = 20
+    BREAK_COUNT = 50
     corpus = []
     line_text = ""
     ent_list = []
     count = 0
     tag = "O\n"
+    new_doc_tag = False
     with open(INPUT_FILE) as file:
         for line in file:
-            if len(line) == 1: # newline
+            conll_line = line.split(sep=" ")
+            if conll_line[0] == '\n':
+                continue
+            elif conll_line[0] == '-DOCSTART-' and new_doc_tag == True:
+                new_doc_tag = False
                 line_text = line_text.strip()
-                ent_dict = {'entities':ent_list}
-                corpus.append((line_text,ent_dict))
+                ent_dict = {'entities': ent_list}
+                corpus.append((line_text, ent_dict))
                 line_text = ""
                 ent_list = []
-            else:
-                conll_line = line.split(sep=" ")
-                if conll_line[3] != tag:
+                new_doc_tag = True
+            elif conll_line[0] != '-DOCSTART-' and new_doc_tag == True:
+                word = conll_line[0]
+                if len(conll_line) > 1 and conll_line[3] != tag:
                     start_len = len(line_text)
-                    end_len = start_len+len(conll_line[0])
+                    end_len = start_len+len(word)
                     ner_tag = conll_line[3]
+                    ent_list.append((start_len, end_len, ner_tag.replace("\n", "")))
+                line_text = line_text + " " + word.strip()
+            elif conll_line[0] == '-DOCSTART-':
+                new_doc_tag = True
 
-                    ent_list.append((start_len,end_len,ner_tag.replace("\n","")))
-                line_text = line_text + " " + line.split(sep=" ")[0]
+            else:
+                print("DO NOTHING\n")
+            # if len(line) == 1: # newline
+            #     line_text = line_text.strip()
+            #     ent_dict = {'entities':ent_list}
+            #     corpus.append((line_text,ent_dict))
+            #     line_text = ""
+            #     ent_list = []
+            # else:
+            #     conll_line = line.split(sep=" ")
+            #     if conll_line[3] != tag:
+            #         start_len = len(line_text)
+            #         end_len = start_len+len(conll_line[0])
+            #         ner_tag = conll_line[3]
+            #
+            #         ent_list.append((start_len,end_len,ner_tag.replace("\n","")))
+            #     line_text = line_text + " " + line.split(sep=" ")[0]
             count = count + 1
-            if count == BREAK_COUNT:
-                break
+            # if count == BREAK_COUNT:
+            #     break
     return corpus
 
 if __name__ == '__main__':
     INPUT_FILE = r".\conll03\eng.train"
     TRAIN_DATA = conll2spacytrain(INPUT_FILE)
-
     plac.call(main)
