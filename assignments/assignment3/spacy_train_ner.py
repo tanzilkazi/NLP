@@ -16,14 +16,14 @@ import spacy
 import time
 
 # training data
-TRAIN_DATA = [
-    ('Who is Shaka Khan?', {
-        'entities': [(7, 17, 'PERSON')]
-    }),
-    ('I like London and Berlin.', {
-        'entities': [(7, 13, 'LOC'), (18, 24, 'LOC')]
-    })
-]
+# TRAIN_DATA = [
+#     ('Who is Shaka Khan?', {
+#         'entities': [(7, 17, 'PERSON')]
+#     }),
+#     ('I like London and Berlin.', {
+#         'entities': [(7, 13, 'LOC'), (18, 24, 'LOC')]
+#     })
+# ]
 
 TEST_DATA = [
     ('Who is Shaka Khan?', {
@@ -39,7 +39,7 @@ TEST_DATA = [
     model=("Model name. Defaults to blank 'en' model.", "option", "m", str),
     output_dir=("Optional output directory", "option", "o", Path),
     n_iter=("Number of training iterations", "option", "n", int))
-def main(model=None, output_dir=r".\spacy_model", n_iter=100):
+def main(model=None, output_dir=r".\spacy_model", n_iter=50):
     """Load the model, set up the pipeline and train the entity recognizer."""
     if model is not None:
         nlp = spacy.load(model)  # load existing spaCy model
@@ -71,6 +71,8 @@ def main(model=None, output_dir=r".\spacy_model", n_iter=100):
             losses = {}
             time_start = time.time()
             for text, annotations in TRAIN_DATA:
+                if "GOLF" in text:
+                    print("")
                 nlp.update(
                     [text],  # batch of texts
                     [annotations],  # batch of annotations
@@ -104,7 +106,7 @@ def main(model=None, output_dir=r".\spacy_model", n_iter=100):
 
 
 def conll2spacytrain(file):
-    BREAK_COUNT = 50
+    BREAK_COUNT = 500
     corpus = []
     line_text = ""
     ent_list = []
@@ -131,6 +133,7 @@ def conll2spacytrain(file):
                     end_len = start_len+len(word)
                     ner_tag = conll_line[3]
                     ent_list.append((start_len, end_len, ner_tag.replace("\n", "")))
+                word = word.replace(r"'","|")
                 line_text = line_text + " " + word.strip()
             elif conll_line[0] == '-DOCSTART-':
                 new_doc_tag = True
@@ -160,4 +163,7 @@ def conll2spacytrain(file):
 if __name__ == '__main__':
     INPUT_FILE = r".\conll03\eng.train"
     TRAIN_DATA = conll2spacytrain(INPUT_FILE)
+    #print(TRAIN_DATA)
+    with open("TRAIN_DATA.txt","w") as f:
+        f.write(str(TRAIN_DATA))
     plac.call(main)
