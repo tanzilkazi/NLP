@@ -67,25 +67,20 @@ def write2file(data,file):
     return True
 
 def output_format(in_file,named_ents):
-    count_ents = 0
-    file_line_count = 0
-    named_ents_index = 0
     output = []
+    ner_count = 0
     with open(in_file) as file:
         for line in file:
-            if line == '\n':
-                output.append('\n')
-            else:
+            if line != '\n':
                 line = line.strip("\n")
                 out = line.split(sep=" ")
-                if out[0] == named_ents[named_ents_index][0]:
-                    out.append(named_ents[named_ents_index][-1])
-                    named_ents_index = named_ents_index + 1
-                    output.append(out)
-            file_line_count = file_line_count + 1
+                out.append(named_ents[ner_count][-1])
+                output.append(out)
+                ner_count = ner_count + 1
+            else:
+                output.append("\n")
     output = nltk2conll_mapper(output)
     return output
-
 # def output_format(in_file,named_ents):
 #     count_ents = 0
 #     output = []
@@ -138,4 +133,6 @@ if __name__ == "__main__":
     ners = ner_stanford(text)
     out = output_format(INPUT_FILE,ners)
     write2file(out,OUTPUT_FILE)
+
+
 
