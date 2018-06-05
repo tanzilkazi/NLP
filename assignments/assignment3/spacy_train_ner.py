@@ -39,7 +39,7 @@ TEST_DATA = [
     model=("Model name. Defaults to blank 'en' model.", "option", "m", str),
     output_dir=("Optional output directory", "option", "o", Path),
     n_iter=("Number of training iterations", "option", "n", int))
-def main(model=None, output_dir=r".\spacy_model", n_iter=50):
+def main(model=None, output_dir=r".\spacy_model", n_iter=100):
     """Load the model, set up the pipeline and train the entity recognizer."""
     if model is not None:
         nlp = spacy.load(model)  # load existing spaCy model
@@ -71,12 +71,10 @@ def main(model=None, output_dir=r".\spacy_model", n_iter=50):
             losses = {}
             time_start = time.time()
             for text, annotations in TRAIN_DATA:
-                if "GOLF" in text:
-                    print("")
                 nlp.update(
                     [text],  # batch of texts
                     [annotations],  # batch of annotations
-                    drop=0.5,  # dropout - make it harder to memorise data
+                    drop=0.3,  # dropout - make it harder to memorise data
                     sgd=optimizer,  # callable to update weights
                     losses=losses)
             print(losses, time.time()-time_start)
@@ -140,21 +138,6 @@ def conll2spacytrain(file):
 
             else:
                 print("DO NOTHING\n")
-            # if len(line) == 1: # newline
-            #     line_text = line_text.strip()
-            #     ent_dict = {'entities':ent_list}
-            #     corpus.append((line_text,ent_dict))
-            #     line_text = ""
-            #     ent_list = []
-            # else:
-            #     conll_line = line.split(sep=" ")
-            #     if conll_line[3] != tag:
-            #         start_len = len(line_text)
-            #         end_len = start_len+len(conll_line[0])
-            #         ner_tag = conll_line[3]
-            #
-            #         ent_list.append((start_len,end_len,ner_tag.replace("\n","")))
-            #     line_text = line_text + " " + line.split(sep=" ")[0]
             count = count + 1
             # if count == BREAK_COUNT:
             #     break

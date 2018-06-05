@@ -7,27 +7,46 @@ STANFORD_PARSER = r".\stanford\stanford-parser-full-2018-02-27\stanford-parser.j
 os.environ['JAVAHOME'] = r"C:\Program Files\Java\jre1.8.0_91\bin\java.exe"
 os.environ['CLASSPATH'] = STANFORD_NER;STANFORD_POS;STANFORD_PARSER
 
-BREAK_COUNT = 500
+# BREAK_COUNT = 500
 
 def conll2string(file):
-    text = ""
+    corpus = ""
+    line_text = ""
     count = 0
+    new_doc_tag = False
     with open(INPUT_FILE) as file:
         for line in file:
-            if len(line) == 1: # newline
-                text = text + " "+ '\n'
+            conll_line = line.split(sep=" ")
+            if conll_line[0] == '\n':
+                continue
+            elif conll_line[0] == '-DOCSTART-' and new_doc_tag == True:
+                new_doc_tag = False
+                line_text = line_text.strip()
+                corpus = corpus + " " + line_text + "\n"+ '-DOCSTART-' + "\n"
+                line_text = ""
+                new_doc_tag = True
+            elif conll_line[0] != '-DOCSTART-' and new_doc_tag == True:
+                word = conll_line[0]
+                line_text = line_text + " " + word.strip()
+            elif conll_line[0] == '-DOCSTART-':
+                line_text = line_text + '-DOCSTART-' + "\n"
+                new_doc_tag = True
             else:
-                text = text + " " + line.split(sep=" ")[0]
+                print("DO NOTHING\n")
             count = count + 1
             # if count == BREAK_COUNT:
             #     break
-    return text
+        new_doc_tag = False
+        line_text = line_text.strip()
+        corpus = corpus + " " + line_text + "\n"
+        line_text = ""
+    return corpus
 
 def ner_stanford(text):
     ner_list =[]
     st_ner = nl.tag.StanfordNERTagger(r".\stanford\stanford-english-corenlp-2018-02-27-models\edu\stanford\nlp\models\ner\english.conll.4class.distsim.crf.ser.gz")
 
-    for line in text.splitlines():
+    for line in text.split("\n"):
         tokens = line.strip().split(sep=" ")
         ner = st_ner.tag(tokens)
         for tup in ner:
@@ -49,10 +68,9 @@ def write2file(data,file):
 
 def output_format(in_file,named_ents):
     count_ents = 0
+    file_line_count = 0
+    named_ents_index = 0
     output = []
-
-    break_count = 0
-
     with open(in_file) as file:
         for line in file:
             if line == '\n':
@@ -60,17 +78,43 @@ def output_format(in_file,named_ents):
             else:
                 line = line.strip("\n")
                 out = line.split(sep=" ")
-                out.append(named_ents[count_ents][-1])
-                if out[0] != named_ents[count_ents][0]:
-                    print("\tinput and ner out of sync, exiting\n")
-                    print("\tout:", out, "\n\tner:", named_ents[count_ents])
-                count_ents = count_ents + 1
-                output.append(out)
-            break_count = break_count + 1
-            # if break_count == BREAK_COUNT:
-            #     break
+                if out[0] == named_ents[named_ents_index][0]:
+                    out.append(named_ents[named_ents_index][-1])
+                    named_ents_index = named_ents_index + 1
+                    output.append(out)
+            file_line_count = file_line_count + 1
     output = nltk2conll_mapper(output)
     return output
+
+# def output_format(in_file,named_ents):
+#     count_ents = 0
+#     output = []
+#     break_count = 0
+#     with open(in_file) as file:
+#         for line in file:
+#             if line == '\n':
+#                 output.append('\n')
+#             else:
+#                 line = line.strip("\n")
+#                 out = line.split(sep=" ")
+#                 print(out)
+#                 if out[0] == '-DOCSTART-':
+#                     out.append('O')
+#                 else:
+#                     if (named_ents[count_ents][0] == "Extremadura"):
+#                         print("here")
+#                     print(named_ents[count_ents])
+#                     out.append(named_ents[count_ents][-1])
+#                 if out[0] != named_ents[count_ents][0]:
+#                     print("\tinput and ner out of sync, exiting\n")
+#                     print("\tout:", out, "\n\tner:", named_ents[count_ents])
+#                 count_ents = count_ents + 1
+#                 output.append(out)
+#             break_count = break_count + 1
+#             if break_count == BREAK_COUNT:
+#                 break
+#     output = nltk2conll_mapper(output)
+#     return output
 
 def nltk2conll_mapper(data):
     mapper = {"MISC": "I-MISC",
@@ -93,6 +137,5 @@ if __name__ == "__main__":
     text = conll2string(INPUT_FILE)
     ners = ner_stanford(text)
     out = output_format(INPUT_FILE,ners)
-    print(out)
-    #write2file(out,OUTPUT_FILE)
+    write2file(out,OUTPUT_FILE)
 

@@ -1,6 +1,6 @@
 import os
 
-BREAK_COUNT = 25
+BREAK_COUNT = 250
 
 def conll2spacytrain(file):
     corpus = []
@@ -14,10 +14,6 @@ def conll2spacytrain(file):
                 line_text = line_text.strip()
                 ent_dict = {'entities':ent_list}
                 corpus.append((line_text,ent_dict))
-
-                # str_ent_list = str(ent_list).strip()
-                # str_ent_list = str_ent_list.replace(r"\\","").strip()
-                # corpus_text = corpus_text + "(\"" + line_text + "\", {'entities':"+str_ent_list+ "}) "+ '\n'
                 line_text = ""
                 ent_list = []
             else:
