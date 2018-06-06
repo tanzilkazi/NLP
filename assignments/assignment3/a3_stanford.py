@@ -81,35 +81,6 @@ def output_format(in_file,named_ents):
                 output.append("\n")
     output = nltk2conll_mapper(output)
     return output
-# def output_format(in_file,named_ents):
-#     count_ents = 0
-#     output = []
-#     break_count = 0
-#     with open(in_file) as file:
-#         for line in file:
-#             if line == '\n':
-#                 output.append('\n')
-#             else:
-#                 line = line.strip("\n")
-#                 out = line.split(sep=" ")
-#                 print(out)
-#                 if out[0] == '-DOCSTART-':
-#                     out.append('O')
-#                 else:
-#                     if (named_ents[count_ents][0] == "Extremadura"):
-#                         print("here")
-#                     print(named_ents[count_ents])
-#                     out.append(named_ents[count_ents][-1])
-#                 if out[0] != named_ents[count_ents][0]:
-#                     print("\tinput and ner out of sync, exiting\n")
-#                     print("\tout:", out, "\n\tner:", named_ents[count_ents])
-#                 count_ents = count_ents + 1
-#                 output.append(out)
-#             break_count = break_count + 1
-#             if break_count == BREAK_COUNT:
-#                 break
-#     output = nltk2conll_mapper(output)
-#     return output
 
 def nltk2conll_mapper(data):
     mapper = {"MISC": "I-MISC",
@@ -132,7 +103,7 @@ if __name__ == "__main__":
     text = conll2string(INPUT_FILE)
     ners = ner_stanford(text)
     out = output_format(INPUT_FILE,ners)
-    write2file(out,OUTPUT_FILE)
+    #write2file(out,OUTPUT_FILE)
 
 
 

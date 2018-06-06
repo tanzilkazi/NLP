@@ -92,8 +92,9 @@ def output_format(in_file,named_ents):
                     list_ner = named_ents[ner_count]["text"].split(sep=" ")
                     if out[0] == list_ner[0]:
                         for ner_word in list_ner:
-                            out.append(named_ents[ner_count]["type"])
-                            output.append(out)
+                            if out[0] == ner_word:
+                                out.append(named_ents[ner_count]["type"])
+                                output.append(out)
                             nline = nline + 1
                             out = lines[nline].strip("\n").split(sep=" ")
                         ner_count = ner_count + 1
@@ -105,6 +106,8 @@ def output_format(in_file,named_ents):
                     output.append(out)
             else:
                 nline = nline + 1
+                out.append("O")
+                output.append(out)
         else:
             out.append("\n")
             output.append(out)
